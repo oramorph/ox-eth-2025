@@ -27,8 +27,9 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 
 db.init_app(app)
 
-# Import models after db initialization to avoid circular imports
+# Import models after db initialization
 from models import Message, ServerStats, WeeklyReport
+from analytics import get_top_topics, get_active_members
 
 @app.route('/')
 def dashboard():
@@ -92,6 +93,30 @@ def dashboard_data():
 @app.route('/reports')
 def reports():
     return render_template('reports.html')
+
+@app.route('/api/reports-data')
+def reports_data():
+    try:
+        # Get messages from the last 7 days
+        week_ago = datetime.utcnow() - timedelta(days=7)
+        messages = Message.query.filter(
+            Message.timestamp >= week_ago
+        ).all()
+
+        # Get analytics data
+        top_topics = get_top_topics(messages)
+        active_members = get_active_members(messages)
+
+        return jsonify({
+            'top_topics': {topic: count for topic, count in top_topics},
+            'active_members': {member: count for member, count in active_members}
+        })
+    except Exception as e:
+        logger.error(f"Error fetching reports data: {e}")
+        return jsonify({
+            'top_topics': {},
+            'active_members': {}
+        }), 500
 
 def init_db():
     try:

@@ -20,14 +20,39 @@
 </div>
 
 <script>
+let topicsChart, membersChart;
+
+async function updateCharts() {
+    try {
+        const response = await fetch('/api/reports-data');
+        if (!response.ok) throw new Error('Failed to fetch data');
+
+        const data = await response.json();
+
+        // Update topics chart
+        const topTopics = data.top_topics;
+        topicsChart.data.labels = Object.keys(topTopics);
+        topicsChart.data.datasets[0].data = Object.values(topTopics);
+        topicsChart.update('none');
+
+        // Update members chart
+        const activeMembers = data.active_members;
+        membersChart.data.labels = Object.keys(activeMembers);
+        membersChart.data.datasets[0].data = Object.values(activeMembers);
+        membersChart.update('none');
+    } catch (error) {
+        console.error('Error updating charts:', error);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Top Topics Chart
-    new Chart(document.getElementById('topicsChart'), {
+    topicsChart = new Chart(document.getElementById('topicsChart'), {
         type: 'doughnut',
         data: {
-            labels: ['Topic 1', 'Topic 2', 'Topic 3', 'Topic 4', 'Topic 5'],
+            labels: [],
             datasets: [{
-                data: [30, 25, 20, 15, 10],
+                data: [],
                 backgroundColor: [
                     '#FF6384',
                     '#36A2EB',
@@ -36,21 +61,47 @@ document.addEventListener('DOMContentLoaded', function() {
                     '#9966FF'
                 ]
             }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
         }
     });
 
     // Active Members Chart
-    new Chart(document.getElementById('membersChart'), {
-        type: 'horizontalBar',
+    membersChart = new Chart(document.getElementById('membersChart'), {
+        type: 'bar',
         data: {
-            labels: ['Member 1', 'Member 2', 'Member 3', 'Member 4', 'Member 5'],
+            labels: [],
             datasets: [{
                 label: 'Messages',
-                data: [150, 120, 100, 80, 60],
+                data: [],
                 backgroundColor: 'rgb(75, 192, 192)'
             }]
+        },
+        options: {
+            responsive: true,
+            indexAxis: 'y',
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                }
+            }
         }
     });
+
+    // Initial data load
+    updateCharts();
+
+    // Refresh every 30 seconds
+    setInterval(updateCharts, 30000);
 });
 </script>
 {% endblock %}
