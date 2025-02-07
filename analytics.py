@@ -11,7 +11,8 @@ def get_top_topics(messages, top_n=5):
     # Get NLTK stop words
     from nltk.corpus import stopwords
     stop_words = set(stopwords.words('english'))
-    words = [w for w in words if w not in stop_words and len(w) > 3]
+    # Filter out stop words, short words, and command words (starting with !)
+    words = [w for w in words if w not in stop_words and len(w) > 3 and not w.startswith('!')]
     return Counter(words).most_common(top_n)
 
 
