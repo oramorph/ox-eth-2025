@@ -81,10 +81,13 @@ async def stats(ctx, days: int = 7):
 async def on_message(message):
     if message.author == bot.user:
         return
+
+    # Process commands first
+    await bot.process_commands(message)
     
-    # Store message in database within app context
-    with app.app_context():
-        try:
+    # Only store non-command messages
+    if not message.content.startswith(bot.command_prefix):
+        with app.app_context():
             try:
                 new_message = Message(
                     discord_message_id=str(message.id),
@@ -99,12 +102,6 @@ async def on_message(message):
             except Exception as e:
                 logger.debug(f"Message {message.id} already exists or error: {e}")
                 db.session.rollback()
-            logger.info(f"Stored message {message.id} from {message.author}")
-        except Exception as e:
-            logger.error(f"Error storing message: {e}")
-            db.session.rollback()
-
-    await bot.process_commands(message)
 
 @tasks.loop(hours=24)
 async def update_stats():
