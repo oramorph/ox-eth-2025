@@ -6,6 +6,8 @@ from app import db, app
 from models import Message, ServerStats
 import os
 from sqlalchemy import func
+from analytics import get_top_topics, get_active_members
+import discord
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -46,10 +48,41 @@ async def on_ready():
                     
     update_stats.start()
 
+@bot.command(name='stats')
+async def stats(ctx, days: int = 7):
+    """Get server stats for the specified number of days"""
+    async with ctx.typing():
+        with app.app_context():
+            end_date = datetime.utcnow()
+            start_date = end_date - timedelta(days=days)
+            
+            messages = db.session.query(Message).filter(
+                Message.timestamp >= start_date
+            ).all()
+            
+            total_messages = len(messages)
+            unique_users = len(set(msg.author_id for msg in messages))
+            top_topics = get_top_topics(messages)
+            active_users = get_active_members(messages)
+
+            embed = discord.Embed(title=f"Server Stats - Last {days} days", color=0x00ff00)
+            embed.add_field(name="Total Messages", value=str(total_messages), inline=True)
+            embed.add_field(name="Unique Users", value=str(unique_users), inline=True)
+            
+            top_topics_str = "\n".join(f"{topic}: {count}" for topic, count in top_topics[:5])
+            embed.add_field(name="Top Topics", value=top_topics_str or "No topics yet", inline=False)
+            
+            active_users_str = "\n".join(f"<@{user_id}>: {count}" for user_id, count in active_users[:5])
+            embed.add_field(name="Most Active Users", value=active_users_str or "No active users", inline=False)
+            
+            await ctx.send(embed=embed)
+
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
         return
+    
+    await bot.process_commands(message)
 
     # Store message in database within app context
     with app.app_context():
