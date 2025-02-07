@@ -23,6 +23,58 @@ async def on_ready():
     logger.info(f'{bot.user} has connected to Discord!')
     update_stats.start()
 
+@bot.command(name='weekly')
+async def weekly_summary(ctx):
+    """Get server activity summary for the past week"""
+    with app.app_context():
+        week_ago = datetime.utcnow() - timedelta(days=7)
+        messages = Message.query.filter(Message.timestamp >= week_ago).all()
+        
+        total_messages = len(messages)
+        unique_users = len(set(msg.author_id for msg in messages))
+        top_topics = get_top_topics(messages)
+        active_members = get_active_members(messages)
+        
+        summary = f"**Weekly Summary**\n"
+        summary += f"Total Messages: {total_messages}\n"
+        summary += f"Active Users: {unique_users}\n\n"
+        
+        summary += "**Top Topics:**\n"
+        for topic, count in top_topics:
+            summary += f"• {topic}: {count} mentions\n"
+        
+        summary += "\n**Most Active Members:**\n"
+        for member_id, count in active_members[:5]:
+            summary += f"• <@{member_id}>: {count} messages\n"
+            
+        await ctx.send(summary)
+
+@bot.command(name='monthly')
+async def monthly_summary(ctx):
+    """Get server activity summary for the past month"""
+    with app.app_context():
+        month_ago = datetime.utcnow() - timedelta(days=30)
+        messages = Message.query.filter(Message.timestamp >= month_ago).all()
+        
+        total_messages = len(messages)
+        unique_users = len(set(msg.author_id for msg in messages))
+        top_topics = get_top_topics(messages)
+        active_members = get_active_members(messages)
+        
+        summary = f"**Monthly Summary**\n"
+        summary += f"Total Messages: {total_messages}\n"
+        summary += f"Active Users: {unique_users}\n\n"
+        
+        summary += "**Top Topics:**\n"
+        for topic, count in top_topics:
+            summary += f"• {topic}: {count} mentions\n"
+        
+        summary += "\n**Most Active Members:**\n"
+        for member_id, count in active_members[:5]:
+            summary += f"• <@{member_id}>: {count} messages\n"
+            
+        await ctx.send(summary)
+
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
