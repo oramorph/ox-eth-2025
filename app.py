@@ -2,17 +2,21 @@ import os
 import logging
 from flask import Flask, render_template, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import DeclarativeBase
 from datetime import datetime, timedelta
 from sqlalchemy import func
-from models import Base, Message, ServerStats, WeeklyReport
-from analytics import get_top_topics, get_active_members
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Initialize Flask and SQLAlchemy
+class Base(DeclarativeBase):
+    pass
+
+db = SQLAlchemy(model_class=Base)
 app = Flask(__name__)
+
+# Configuration
 app.secret_key = os.environ.get("FLASK_SECRET_KEY") or "discord_analytics_secret"
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///discord_analytics.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -21,8 +25,11 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_pre_ping": True,
 }
 
-db = SQLAlchemy(model_class=Base)
 db.init_app(app)
+
+# Import models after db initialization
+from models import Message, ServerStats, WeeklyReport
+from analytics import get_top_topics, get_active_members
 
 @app.route('/')
 def dashboard():
@@ -59,21 +66,16 @@ def dashboard_data():
             func.date(Message.timestamp)
         ).all()
 
-        # Generate dates for the last 7 days
+        # Format data for charts
         dates = [(start_date + timedelta(days=x)).strftime('%Y-%m-%d') for x in range(8)]
         message_data = {date: 0 for date in dates}
         user_data = {date: 0 for date in dates}
 
-        # Fill in actual data where it exists
         for date, count in daily_messages:
-            date_str = date.strftime('%Y-%m-%d')
-            if date_str in message_data:
-                message_data[date_str] = count
+            message_data[date.strftime('%Y-%m-%d')] = count
 
         for date, count in daily_users:
-            date_str = date.strftime('%Y-%m-%d')
-            if date_str in user_data:
-                user_data[date_str] = count
+            user_data[date.strftime('%Y-%m-%d')] = count
 
         return jsonify({
             'dates': list(message_data.keys()),
@@ -97,34 +99,23 @@ def reports_data():
     try:
         # Get messages from the last 7 days
         week_ago = datetime.utcnow() - timedelta(days=7)
-        messages = db.session.query(Message).filter(
+        messages = Message.query.filter(
             Message.timestamp >= week_ago
         ).all()
-
-        if not messages:
-            return jsonify({
-                'top_topics': {'No messages yet': 1},
-                'active_members': {'No activity yet': 1}
-            })
 
         # Get analytics data
         top_topics = get_top_topics(messages)
         active_members = get_active_members(messages)
 
-        if not top_topics:
-            top_topics = [('No topics yet', 1)]
-        if not active_members:
-            active_members = [('No active members yet', 1)]
-
         return jsonify({
-            'top_topics': dict(top_topics),
-            'active_members': dict(active_members)
+            'top_topics': {topic: count for topic, count in top_topics},
+            'active_members': {member: count for member, count in active_members}
         })
     except Exception as e:
         logger.error(f"Error fetching reports data: {e}")
         return jsonify({
-            'top_topics': {'Error loading topics': 1},
-            'active_members': {'Error loading members': 1}
+            'top_topics': {},
+            'active_members': {}
         }), 500
 
 def init_db():
