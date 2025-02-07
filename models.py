@@ -14,6 +14,8 @@ class Message(Base):
     author_id = Column(String(32))
     content = Column(Text)
     timestamp = Column(DateTime, default=datetime.utcnow)
+    reply_to_id = Column(String(32), nullable=True)  # Discord message ID being replied to
+    reply_to_author_id = Column(String(32), nullable=True)  # Author being replied to
 
 class ServerStats(Base):
     __tablename__ = 'server_stats'

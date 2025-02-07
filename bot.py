@@ -94,7 +94,9 @@ async def on_message(message):
                     channel_id=str(message.channel.id),
                     author_id=str(message.author.id),
                     content=message.content,
-                    timestamp=message.created_at
+                    timestamp=message.created_at,
+                    reply_to_id=str(message.reference.message_id) if message.reference else None,
+                    reply_to_author_id=str(message.reference.resolved.author.id) if message.reference and message.reference.resolved else None
                 )
                 db.session.add(new_message)
                 db.session.commit()
