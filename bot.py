@@ -82,8 +82,6 @@ async def on_message(message):
     if message.author == bot.user:
         return
     
-    await bot.process_commands(message)
-
     # Store message in database within app context
     with app.app_context():
         try:
