@@ -2,21 +2,17 @@ import os
 import logging
 from flask import Flask, render_template, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
 from datetime import datetime, timedelta
 from sqlalchemy import func
+from models import Base, Message, ServerStats, WeeklyReport
+from analytics import get_top_topics, get_active_members
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-class Base(DeclarativeBase):
-    pass
-
-db = SQLAlchemy(model_class=Base)
+# Initialize Flask and SQLAlchemy
 app = Flask(__name__)
-
-# Configuration
 app.secret_key = os.environ.get("FLASK_SECRET_KEY") or "discord_analytics_secret"
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///discord_analytics.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -25,11 +21,8 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_pre_ping": True,
 }
 
+db = SQLAlchemy(model_class=Base)
 db.init_app(app)
-
-# Import models after db initialization
-from models import Message, ServerStats, WeeklyReport
-from analytics import get_top_topics, get_active_members
 
 @app.route('/')
 def dashboard():
@@ -99,7 +92,7 @@ def reports_data():
     try:
         # Get messages from the last 7 days
         week_ago = datetime.utcnow() - timedelta(days=7)
-        messages = Message.query.filter(
+        messages = db.session.query(Message).filter(
             Message.timestamp >= week_ago
         ).all()
 
@@ -108,8 +101,8 @@ def reports_data():
         active_members = get_active_members(messages)
 
         return jsonify({
-            'top_topics': {topic: count for topic, count in top_topics},
-            'active_members': {member: count for member, count in active_members}
+            'top_topics': dict(top_topics),
+            'active_members': dict(active_members)
         })
     except Exception as e:
         logger.error(f"Error fetching reports data: {e}")

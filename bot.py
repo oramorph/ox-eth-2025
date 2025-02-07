@@ -3,9 +3,9 @@ from discord.ext import commands, tasks
 import logging
 from datetime import datetime, timedelta
 from app import db, app
-from models import Message, ServerStats, WeeklyReport
-import json
+from models import Message, ServerStats
 import os
+from sqlalchemy import func
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -32,7 +32,10 @@ async def on_message(message):
     with app.app_context():
         try:
             # Check if message already exists
-            existing_message = Message.query.filter_by(discord_message_id=str(message.id)).first()
+            existing_message = db.session.query(Message).filter_by(
+                discord_message_id=str(message.id)
+            ).first()
+
             if existing_message:
                 logger.debug(f"Message {message.id} already exists in database")
                 return
@@ -59,19 +62,17 @@ async def update_stats():
     """Update daily server statistics"""
     with app.app_context():
         for guild in bot.guilds:
-            # Count today's messages
             today = datetime.utcnow().date()
-            message_count = Message.query.filter(
-                Message.timestamp >= today
+
+            # Count today's messages
+            message_count = db.session.query(Message).filter(
+                func.date(Message.timestamp) == today
             ).count()
 
             # Count active users
-            active_users = (
-                Message.query.filter(Message.timestamp >= today)
-                .with_entities(Message.author_id)
-                .distinct()
-                .count()
-            )
+            active_users = db.session.query(Message.author_id).filter(
+                func.date(Message.timestamp) == today
+            ).distinct().count()
 
             stats = ServerStats(
                 server_id=str(guild.id),
