@@ -11,9 +11,11 @@ import os
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('discord_bot')
 
-# Create bot instance
+# Create bot instance with required intents
 intents = discord.Intents.default()
 intents.message_content = True
+intents.members = True  # Required for tracking member activity
+intents.guilds = True   # Required for server information
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 @bot.event
@@ -34,7 +36,7 @@ async def on_message(message):
         content=message.content,
         timestamp=message.created_at
     )
-    
+
     db.session.add(new_message)
     try:
         db.session.commit()
@@ -68,7 +70,7 @@ async def update_stats():
             active_users=active_users,
             date=today
         )
-        
+
         db.session.add(stats)
         try:
             db.session.commit()
@@ -77,9 +79,25 @@ async def update_stats():
             db.session.rollback()
 
 def start_bot():
-    # Get token from environment variable
+    """Start the Discord bot with proper error handling"""
     token = os.environ.get('DISCORD_BOT_TOKEN')
     if not token:
         logger.error("Discord bot token not found in environment variables")
         return
-    bot.run(token)
+
+    try:
+        logger.info("Starting Discord bot...")
+        bot.run(token)
+    except discord.errors.PrivilegedIntentsRequired:
+        logger.error("""
+        Error: Privileged Intents are not enabled for this bot!
+        Please follow these steps to enable them:
+        1. Go to https://discord.com/developers/applications
+        2. Select your bot application
+        3. Go to the "Bot" section
+        4. Enable the following Privileged Gateway Intents:
+           - SERVER MEMBERS INTENT
+           - MESSAGE CONTENT INTENT
+        """)
+    except Exception as e:
+        logger.error(f"Error starting bot: {e}")
