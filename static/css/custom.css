@@ -1,0 +1,25 @@
+/* Additional custom styles */
+.card {
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    background-color: var(--bs-dark);
+    border-bottom: 1px solid var(--bs-gray-700);
+}
+
+.card-title {
+    margin-bottom: 0;
+    color: var(--bs-light);
+}
+
+canvas {
+    margin: 1rem 0;
+    max-height: 300px;
+}
+
+.navbar {
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}

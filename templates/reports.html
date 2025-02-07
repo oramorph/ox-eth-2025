@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title">Weekly Report</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Top Topics</h6>
+                <canvas id="topicsChart"></canvas>
+            </div>
+            <div class="col-md-6">
+                <h6>Most Active Members</h6>
+                <canvas id="membersChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Top Topics Chart
+    new Chart(document.getElementById('topicsChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Topic 1', 'Topic 2', 'Topic 3', 'Topic 4', 'Topic 5'],
+            datasets: [{
+                data: [30, 25, 20, 15, 10],
+                backgroundColor: [
+                    '#FF6384',
+                    '#36A2EB',
+                    '#FFCE56',
+                    '#4BC0C0',
+                    '#9966FF'
+                ]
+            }]
+        }
+    });
+
+    // Active Members Chart
+    new Chart(document.getElementById('membersChart'), {
+        type: 'horizontalBar',
+        data: {
+            labels: ['Member 1', 'Member 2', 'Member 3', 'Member 4', 'Member 5'],
+            datasets: [{
+                label: 'Messages',
+                data: [150, 120, 100, 80, 60],
+                backgroundColor: 'rgb(75, 192, 192)'
+            }]
+        }
+    });
+});
+</script>
+{% endblock %}
