@@ -8,9 +8,9 @@ import nltk
 def get_top_topics(messages, top_n=5):
     """Extract top topics from messages using simple word frequency"""
     words = ' '.join([msg.content for msg in messages]).lower().split()
-    # Filter common words
-    stop_words = set(
-        ['the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have'])
+    # Get NLTK stop words
+    from nltk.corpus import stopwords
+    stop_words = set(stopwords.words('english'))
     words = [w for w in words if w not in stop_words and len(w) > 3]
     return Counter(words).most_common(top_n)
 
