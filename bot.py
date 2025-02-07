@@ -21,6 +21,29 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 @bot.event
 async def on_ready():
     logger.info(f'{bot.user} has connected to Discord!')
+    
+    # Fetch historical messages
+    with app.app_context():
+        for guild in bot.guilds:
+            for channel in guild.text_channels:
+                try:
+                    async for message in channel.history(limit=1000):
+                        if message.author != bot.user:
+                            new_message = Message(
+                                discord_message_id=str(message.id),
+                                channel_id=str(channel.id),
+                                author_id=str(message.author.id),
+                                content=message.content,
+                                timestamp=message.created_at
+                            )
+                            try:
+                                db.session.add(new_message)
+                                db.session.commit()
+                            except:
+                                db.session.rollback()
+                except Exception as e:
+                    logger.error(f"Error fetching history for channel {channel}: {e}")
+                    
     update_stats.start()
 
 @bot.event
@@ -31,25 +54,20 @@ async def on_message(message):
     # Store message in database within app context
     with app.app_context():
         try:
-            # Check if message already exists
-            existing_message = db.session.query(Message).filter_by(
-                discord_message_id=str(message.id)
-            ).first()
-
-            if existing_message:
-                logger.debug(f"Message {message.id} already exists in database")
-                return
-
-            new_message = Message(
-                discord_message_id=str(message.id),
-                channel_id=str(message.channel.id),
-                author_id=str(message.author.id),
-                content=message.content,
-                timestamp=message.created_at
-            )
-
-            db.session.add(new_message)
-            db.session.commit()
+            try:
+                new_message = Message(
+                    discord_message_id=str(message.id),
+                    channel_id=str(message.channel.id),
+                    author_id=str(message.author.id),
+                    content=message.content,
+                    timestamp=message.created_at
+                )
+                db.session.add(new_message)
+                db.session.commit()
+                logger.info(f"Stored message {message.id} from {message.author}")
+            except Exception as e:
+                logger.debug(f"Message {message.id} already exists or error: {e}")
+                db.session.rollback()
             logger.info(f"Stored message {message.id} from {message.author}")
         except Exception as e:
             logger.error(f"Error storing message: {e}")
