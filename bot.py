@@ -6,6 +6,7 @@ from app import db, app
 from models import Message, ServerStats, WeeklyReport
 import json
 import os
+from analytics import get_top_topics, get_active_members
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
