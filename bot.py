@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands, tasks
 import logging
 from datetime import datetime, timedelta
-from app import db
+from app import db, app
 from models import Message, ServerStats, WeeklyReport
 import json
 import os
@@ -28,55 +28,59 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    # Store message in database
-    new_message = Message(
-        discord_message_id=str(message.id),
-        channel_id=str(message.channel.id),
-        author_id=str(message.author.id),
-        content=message.content,
-        timestamp=message.created_at
-    )
+    # Store message in database within app context
+    with app.app_context():
+        new_message = Message(
+            discord_message_id=str(message.id),
+            channel_id=str(message.channel.id),
+            author_id=str(message.author.id),
+            content=message.content,
+            timestamp=message.created_at
+        )
 
-    db.session.add(new_message)
-    try:
-        db.session.commit()
-    except Exception as e:
-        logger.error(f"Error storing message: {e}")
-        db.session.rollback()
+        db.session.add(new_message)
+        try:
+            db.session.commit()
+            logger.info(f"Stored message {message.id} from {message.author}")
+        except Exception as e:
+            logger.error(f"Error storing message: {e}")
+            db.session.rollback()
 
     await bot.process_commands(message)
 
 @tasks.loop(hours=24)
 async def update_stats():
     """Update daily server statistics"""
-    for guild in bot.guilds:
-        # Count today's messages
-        today = datetime.utcnow().date()
-        message_count = Message.query.filter(
-            Message.timestamp >= today
-        ).count()
+    with app.app_context():
+        for guild in bot.guilds:
+            # Count today's messages
+            today = datetime.utcnow().date()
+            message_count = Message.query.filter(
+                Message.timestamp >= today
+            ).count()
 
-        # Count active users
-        active_users = (
-            Message.query.filter(Message.timestamp >= today)
-            .with_entities(Message.author_id)
-            .distinct()
-            .count()
-        )
+            # Count active users
+            active_users = (
+                Message.query.filter(Message.timestamp >= today)
+                .with_entities(Message.author_id)
+                .distinct()
+                .count()
+            )
 
-        stats = ServerStats(
-            server_id=str(guild.id),
-            total_messages=message_count,
-            active_users=active_users,
-            date=today
-        )
+            stats = ServerStats(
+                server_id=str(guild.id),
+                total_messages=message_count,
+                active_users=active_users,
+                date=today
+            )
 
-        db.session.add(stats)
-        try:
-            db.session.commit()
-        except Exception as e:
-            logger.error(f"Error updating stats: {e}")
-            db.session.rollback()
+            db.session.add(stats)
+            try:
+                db.session.commit()
+                logger.info(f"Updated stats for server {guild.id}")
+            except Exception as e:
+                logger.error(f"Error updating stats: {e}")
+                db.session.rollback()
 
 def start_bot():
     """Start the Discord bot with proper error handling"""
