@@ -28,31 +28,28 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    # Store message in database within app context
-    with app.app_context():
-        try:
-            # Check if message already exists
-            existing_message = Message.query.filter_by(discord_message_id=str(message.id)).first()
-            if existing_message:
-                logger.debug(f"Message {message.id} already exists in database")
-                return
-
-            new_message = Message(
-                discord_message_id=str(message.id),
-                channel_id=str(message.channel.id),
-                author_id=str(message.author.id),
-                content=message.content,
-                timestamp=message.created_at
-            )
-
-            db.session.add(new_message)
-            db.session.commit()
-            logger.info(f"Stored message {message.id} from {message.author}")
-        except Exception as e:
-            logger.error(f"Error storing message: {e}")
-            db.session.rollback()
-
+    # Process commands first
     await bot.process_commands(message)
+    
+    # Store non-command messages in database
+    if not message.content.startswith(bot.command_prefix):
+        with app.app_context():
+            try:
+                existing_message = Message.query.filter_by(discord_message_id=str(message.id)).first()
+                if not existing_message:
+                    new_message = Message(
+                        discord_message_id=str(message.id),
+                        channel_id=str(message.channel.id),
+                        author_id=str(message.author.id),
+                        content=message.content,
+                        timestamp=message.created_at
+                    )
+                    db.session.add(new_message)
+                    db.session.commit()
+                    logger.info(f"Stored message {message.id} from {message.author}")
+            except Exception as e:
+                logger.error(f"Error storing message: {e}")
+                db.session.rollback()
 
 @tasks.loop(hours=24)
 async def update_stats():
