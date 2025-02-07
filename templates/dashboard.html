@@ -28,27 +28,25 @@
 <script>
 let messageChart, userChart;
 
-function updateCharts() {
-    fetch(window.location.href)
-        .then(response => response.text())
-        .then(html => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
+async function updateCharts() {
+    try {
+        const response = await fetch('/api/dashboard-data');
+        const data = await response.json();
 
-            // Get the new data from the page
-            const dates = {{ dates | tojson }};
-            const messageCounts = {{ message_counts | tojson }};
-            const userCounts = {{ user_counts | tojson }};
+        if (response.ok) {
+            // Update message chart
+            messageChart.data.labels = data.dates;
+            messageChart.data.datasets[0].data = data.message_counts;
+            messageChart.update('none');  // Update without animation for smoother refresh
 
-            // Update existing charts
-            messageChart.data.labels = dates;
-            messageChart.data.datasets[0].data = messageCounts;
-            messageChart.update();
-
-            userChart.data.labels = dates;
-            userChart.data.datasets[0].data = userCounts;
-            userChart.update();
-        });
+            // Update user chart
+            userChart.data.labels = data.dates;
+            userChart.data.datasets[0].data = data.user_counts;
+            userChart.update('none');  // Update without animation for smoother refresh
+        }
+    } catch (error) {
+        console.error('Error updating charts:', error);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -56,10 +54,10 @@ document.addEventListener('DOMContentLoaded', function() {
     messageChart = new Chart(document.getElementById('messageChart'), {
         type: 'line',
         data: {
-            labels: {{ dates | tojson }},
+            labels: [],
             datasets: [{
                 label: 'Messages',
-                data: {{ message_counts | tojson }},
+                data: [],
                 borderColor: 'rgb(75, 192, 192)',
                 tension: 0.1
             }]
@@ -81,10 +79,10 @@ document.addEventListener('DOMContentLoaded', function() {
     userChart = new Chart(document.getElementById('userChart'), {
         type: 'bar',
         data: {
-            labels: {{ dates | tojson }},
+            labels: [],
             datasets: [{
                 label: 'Active Users',
-                data: {{ user_counts | tojson }},
+                data: [],
                 backgroundColor: 'rgb(153, 102, 255)'
             }]
         },
@@ -101,8 +99,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Auto-refresh every 30 seconds
-    setInterval(updateCharts, 30000);
+    // Fetch initial data immediately
+    updateCharts();
+
+    // Auto-refresh every 10 seconds
+    setInterval(updateCharts, 10000);
 });
 </script>
 {% endblock %}

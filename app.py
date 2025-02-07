@@ -32,11 +32,15 @@ from models import Message, ServerStats, WeeklyReport
 
 @app.route('/')
 def dashboard():
-    # Get the last 7 days of data
-    end_date = datetime.utcnow()
-    start_date = end_date - timedelta(days=7)
+    return render_template('dashboard.html')
 
+@app.route('/api/dashboard-data')
+def dashboard_data():
     try:
+        # Get the last 7 days of data
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=7)
+
         # Get daily message counts
         daily_messages = db.session.query(
             func.date(Message.timestamp).label('date'),
@@ -72,16 +76,18 @@ def dashboard():
         for date, count in daily_users:
             user_data[date.strftime('%Y-%m-%d')] = count
 
-        return render_template('dashboard.html',
-                             dates=list(message_data.keys()),
-                             message_counts=list(message_data.values()),
-                             user_counts=list(user_data.values()))
+        return jsonify({
+            'dates': list(message_data.keys()),
+            'message_counts': list(message_data.values()),
+            'user_counts': list(user_data.values())
+        })
     except Exception as e:
         logger.error(f"Error fetching dashboard data: {e}")
-        return render_template('dashboard.html',
-                             dates=[],
-                             message_counts=[],
-                             user_counts=[])
+        return jsonify({
+            'dates': [],
+            'message_counts': [],
+            'user_counts': []
+        }), 500
 
 @app.route('/reports')
 def reports():
