@@ -26,9 +26,34 @@
 </div>
 
 <script>
+let messageChart, userChart;
+
+function updateCharts() {
+    fetch(window.location.href)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+
+            // Get the new data from the page
+            const dates = {{ dates | tojson }};
+            const messageCounts = {{ message_counts | tojson }};
+            const userCounts = {{ user_counts | tojson }};
+
+            // Update existing charts
+            messageChart.data.labels = dates;
+            messageChart.data.datasets[0].data = messageCounts;
+            messageChart.update();
+
+            userChart.data.labels = dates;
+            userChart.data.datasets[0].data = userCounts;
+            userChart.update();
+        });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Message Activity Chart
-    new Chart(document.getElementById('messageChart'), {
+    messageChart = new Chart(document.getElementById('messageChart'), {
         type: 'line',
         data: {
             labels: {{ dates | tojson }},
@@ -53,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Active Users Chart
-    new Chart(document.getElementById('userChart'), {
+    userChart = new Chart(document.getElementById('userChart'), {
         type: 'bar',
         data: {
             labels: {{ dates | tojson }},
@@ -75,6 +100,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
+    // Auto-refresh every 30 seconds
+    setInterval(updateCharts, 30000);
 });
 </script>
 {% endblock %}

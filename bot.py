@@ -30,16 +30,22 @@ async def on_message(message):
 
     # Store message in database within app context
     with app.app_context():
-        new_message = Message(
-            discord_message_id=str(message.id),
-            channel_id=str(message.channel.id),
-            author_id=str(message.author.id),
-            content=message.content,
-            timestamp=message.created_at
-        )
-
-        db.session.add(new_message)
         try:
+            # Check if message already exists
+            existing_message = Message.query.filter_by(discord_message_id=str(message.id)).first()
+            if existing_message:
+                logger.debug(f"Message {message.id} already exists in database")
+                return
+
+            new_message = Message(
+                discord_message_id=str(message.id),
+                channel_id=str(message.channel.id),
+                author_id=str(message.author.id),
+                content=message.content,
+                timestamp=message.created_at
+            )
+
+            db.session.add(new_message)
             db.session.commit()
             logger.info(f"Stored message {message.id} from {message.author}")
         except Exception as e:
