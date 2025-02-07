@@ -127,5 +127,4 @@ def init_db():
         logger.error(f"Error initializing database: {e}")
         raise
 
-# Initialize database tables
-init_db()
+# Database initialization will be done from main.py
