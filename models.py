@@ -1,26 +1,35 @@
+from app import db
 from datetime import datetime
-from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy import Integer, String, Text, DateTime, Date, Column
+from sqlalchemy import Integer, String, Text, DateTime, Date
 
-class Message(DeclarativeBase):
-    id = Column(Integer, primary_key=True)
-    discord_message_id = Column(String(32), unique=True)
-    channel_id = Column(String(32))
-    author_id = Column(String(32))
-    content = Column(Text)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+# Message Model
+class Message(db.Model):
+    __tablename__ = "messages"
 
-class ServerStats(DeclarativeBase):
-    id = Column(Integer, primary_key=True)
-    server_id = Column(String(32))
-    total_messages = Column(Integer, default=0)
-    active_users = Column(Integer, default=0)
-    date = Column(Date)
+    id = db.Column(Integer, primary_key=True)
+    discord_message_id = db.Column(String(32), unique=True)
+    channel_id = db.Column(String(32))
+    author_id = db.Column(String(32))
+    content = db.Column(Text, nullable=True)
+    timestamp = db.Column(DateTime, default=datetime.utcnow)
 
-class WeeklyReport(DeclarativeBase):
-    id = Column(Integer, primary_key=True)
-    server_id = Column(String(32))
-    week_start = Column(Date)
-    top_topics = Column(Text)  # JSON string
-    active_members = Column(Text)  # JSON string
-    summary = Column(Text)
+# Server Stats Model
+class ServerStats(db.Model):
+    __tablename__ = "server_stats"
+
+    id = db.Column(Integer, primary_key=True)
+    server_id = db.Column(String(32))
+    total_messages = db.Column(Integer, default=0)
+    active_users = db.Column(Integer, default=0)
+    date = db.Column(Date)
+
+# Weekly Report Model
+class WeeklyReport(db.Model):
+    __tablename__ = "weekly_reports"
+
+    id = db.Column(Integer, primary_key=True)
+    server_id = db.Column(String(32))
+    week_start = db.Column(Date)
+    top_topics = db.Column(Text)  # JSON string
+    active_members = db.Column(Text)  # JSON string
+    summary = db.Column(Text)
