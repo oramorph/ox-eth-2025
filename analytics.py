@@ -2,6 +2,7 @@ from collections import Counter
 from models import Message, ServerStats
 from datetime import datetime, timedelta
 import json
+import nltk
 
 
 def get_top_topics(messages, top_n=5):
