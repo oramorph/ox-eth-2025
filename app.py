@@ -59,16 +59,21 @@ def dashboard_data():
             func.date(Message.timestamp)
         ).all()
 
-        # Format data for charts
+        # Generate dates for the last 7 days
         dates = [(start_date + timedelta(days=x)).strftime('%Y-%m-%d') for x in range(8)]
         message_data = {date: 0 for date in dates}
         user_data = {date: 0 for date in dates}
 
+        # Fill in actual data where it exists
         for date, count in daily_messages:
-            message_data[date.strftime('%Y-%m-%d')] = count
+            date_str = date.strftime('%Y-%m-%d')
+            if date_str in message_data:
+                message_data[date_str] = count
 
         for date, count in daily_users:
-            user_data[date.strftime('%Y-%m-%d')] = count
+            date_str = date.strftime('%Y-%m-%d')
+            if date_str in user_data:
+                user_data[date_str] = count
 
         return jsonify({
             'dates': list(message_data.keys()),
@@ -96,9 +101,20 @@ def reports_data():
             Message.timestamp >= week_ago
         ).all()
 
+        if not messages:
+            return jsonify({
+                'top_topics': {'No messages yet': 1},
+                'active_members': {'No activity yet': 1}
+            })
+
         # Get analytics data
         top_topics = get_top_topics(messages)
         active_members = get_active_members(messages)
+
+        if not top_topics:
+            top_topics = [('No topics yet', 1)]
+        if not active_members:
+            active_members = [('No active members yet', 1)]
 
         return jsonify({
             'top_topics': dict(top_topics),
@@ -107,8 +123,8 @@ def reports_data():
     except Exception as e:
         logger.error(f"Error fetching reports data: {e}")
         return jsonify({
-            'top_topics': {},
-            'active_members': {}
+            'top_topics': {'Error loading topics': 1},
+            'active_members': {'Error loading members': 1}
         }), 500
 
 def init_db():
