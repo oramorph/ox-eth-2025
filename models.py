@@ -13,6 +13,14 @@ class Message(db.Model):
     content = db.Column(Text, nullable=True)
     timestamp = db.Column(DateTime, default=datetime.utcnow)
 
+    def __init__(self, discord_message_id, channel_id, author_id, content, timestamp):
+        self.discord_message_id = discord_message_id
+        self.channel_id = channel_id
+        self.author_id = author_id
+        self.content = content
+        self.timestamp = timestamp
+
+
 # Server Stats Model
 class ServerStats(db.Model):
     __tablename__ = "server_stats"
@@ -22,6 +30,12 @@ class ServerStats(db.Model):
     total_messages = db.Column(Integer, default=0)
     active_users = db.Column(Integer, default=0)
     date = db.Column(Date)
+
+    def __init__(self, server_id, total_messages=0, active_users=0, date=None):
+        self.server_id = server_id
+        self.total_messages = total_messages
+        self.active_users = active_users
+        self.date = date or datetime.utcnow().date()
 
 # Weekly Report Model
 class WeeklyReport(db.Model):
