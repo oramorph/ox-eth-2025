@@ -2,6 +2,7 @@ from app import db
 from datetime import datetime
 from sqlalchemy import Integer, String, Text, DateTime, Date
 
+
 # Message Model
 class Message(db.Model):
     __tablename__ = "messages"
@@ -12,13 +13,16 @@ class Message(db.Model):
     author_id = db.Column(String(32))
     content = db.Column(Text, nullable=True)
     timestamp = db.Column(DateTime, default=datetime.utcnow)
+    reaction_count = db.Column(Integer, default=0)
 
-    def __init__(self, discord_message_id, channel_id, author_id, content, timestamp):
+    def __init__(self, discord_message_id, channel_id, author_id, content,
+                 timestamp, reaction_count):
         self.discord_message_id = discord_message_id
         self.channel_id = channel_id
         self.author_id = author_id
         self.content = content
         self.timestamp = timestamp
+        self.reaction_count = reaction_count
 
 
 # Server Stats Model
@@ -36,6 +40,7 @@ class ServerStats(db.Model):
         self.total_messages = total_messages
         self.active_users = active_users
         self.date = date or datetime.utcnow().date()
+
 
 # Weekly Report Model
 class WeeklyReport(db.Model):
